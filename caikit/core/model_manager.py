@@ -186,15 +186,16 @@ class ModelManager:
         log.debug2("model trained on backend: %s", model_backend)
 
         # Get the mapping of available implementations for this module
-        configured_backends = backend_config.configured_backends()
+        configured_backends = backend_config.get_configured_backends()
 
+        # NOTE: this should be the only place we "backend_configure"
         if len(configured_backends) == 0:
             log.warning(
                 "<COR56759744W>",
                 "No backend configured! Trying to configure using default config file.",
             )
-            backend_config.configure()
-            configured_backends = backend_config.configured_backends()
+            backend_config.backend_configure()
+            configured_backends = backend_config.get_configured_backends()
 
         # If configured backends is empty, add LOCAL backend to it
         local_enabled = backend_types.LOCAL in configured_backends

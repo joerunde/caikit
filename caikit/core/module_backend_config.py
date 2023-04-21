@@ -21,15 +21,12 @@ import alog
 
 # Local
 from .module import MODULE_BACKEND_REGISTRY
-from .module_backends.backend_types import (
-    MODULE_BACKEND_CONFIG_FUNCTIONS,
-    MODULE_BACKEND_TYPES,
-)
+from .module_backends.backend_types import MODULE_BACKEND_CLASSES, MODULE_BACKEND_TYPES
 from .module_backends.base import BackendBase
 from .toolkit.errors import error_handler
 from caikit.config import get_config
 
-log = alog.use_channel("CONF")
+log = alog.use_channel("BACKENDS")
 error = error_handler.get(log)
 
 _CONFIGURED_BACKENDS = {}
@@ -65,7 +62,7 @@ def get_backend(backend_type: str) -> BackendBase:
     return backend
 
 
-def configured_backends() -> List[str]:
+def get_configured_backends() -> List[str]:
     """This function exposes the list of configured backends for downstream
     checks
     """
@@ -73,7 +70,7 @@ def configured_backends() -> List[str]:
     return list(_CONFIGURED_BACKENDS.keys())
 
 
-def configure():
+def backend_configure():
     """Configure the backend environment
 
     NOTE: This function is NOT thread safe!
@@ -122,10 +119,13 @@ def configure():
         backend_config = backend_configs.get(backend.lower(), {})
         log.debug3("Backend [%s] config: %s", backend, backend_config)
 
-        if backend in configured_backends() and backend != MODULE_BACKEND_TYPES.LOCAL:
+        if (
+            backend in get_configured_backends()
+            and backend != MODULE_BACKEND_TYPES.LOCAL
+        ):
             error("<COR64618509E>", AssertionError(f"{backend} already configured"))
 
-        config_class = MODULE_BACKEND_CONFIG_FUNCTIONS.get(backend)
+        config_class = MODULE_BACKEND_CLASSES.get(backend)
 
         # NOTE: since all backends needs to be derived from BackendBase, they all
         # support configuration. as input

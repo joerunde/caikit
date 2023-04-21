@@ -13,7 +13,6 @@
 # limitations under the License.
 
 # Standard
-import io
 import json
 import os
 import tempfile

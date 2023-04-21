@@ -49,7 +49,7 @@ class _AttrAccessDict(dict):
 # "enum" holding known backend types. This is implemented as a dict so that it
 # can be extended as needed by downstream libraries.
 MODULE_BACKEND_TYPES = _AttrAccessDict()
-MODULE_BACKEND_CONFIG_FUNCTIONS: Dict[int, Type[BackendBase]] = {}
+MODULE_BACKEND_CLASSES: Dict[int, Type[BackendBase]] = {}
 
 
 ## Public ######################################################################
@@ -93,7 +93,7 @@ def register_backend_type(config_class: Optional[Type[BackendBase]] = None):
     # The object of the "configured" backend module is generated using caikit.config.configure
     if type_name not in MODULE_BACKEND_TYPES:
         MODULE_BACKEND_TYPES[type_name] = type_name
-        MODULE_BACKEND_CONFIG_FUNCTIONS[type_name] = config_class
+        MODULE_BACKEND_CLASSES[type_name] = config_class
 
 
 def __getattr__(name):

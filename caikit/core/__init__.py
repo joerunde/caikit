@@ -33,7 +33,7 @@ from .blocks.base import BlockBase, block
 from .data_model import dataobject
 from .model_manager import *
 from .module import *
-from .module_backend_config import configure as backend_configure
+from .module_backend_config import backend_configure
 from .module_backends import *
 from .module_config import ModuleConfig
 from .resources.base import ResourceBase, resource

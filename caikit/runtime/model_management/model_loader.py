@@ -24,7 +24,7 @@ import alog
 # Local
 from caikit.config import get_config
 from caikit.core import MODEL_MANAGER
-from caikit.core.module_backend_config import configure
+from caikit.core.module_backend_config import backend_configure
 from caikit.runtime.model_management.batcher import Batcher
 from caikit.runtime.model_management.loaded_model import LoadedModel
 from caikit.runtime.types.caikit_runtime_exception import CaikitRuntimeException
@@ -56,7 +56,7 @@ class ModelLoader:
         if get_config().module_backends.enabled:
             log.info("<RUN89711118I>", "Configuring for backends loading")
             log.debug("Backends config: %s", get_config().module_backends)
-            configure()
+            backend_configure()
 
     def load_model(self, model_id, local_model_path, model_type) -> LoadedModel:
         """Load a model using model_path (in Cloud Object Storage) & give it a model ID.

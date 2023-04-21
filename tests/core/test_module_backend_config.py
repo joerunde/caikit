@@ -20,9 +20,9 @@ Tests for the backend configuration framework
 from caikit.core.blocks import base, block
 from caikit.core.module_backend_config import (
     _CONFIGURED_BACKENDS,
-    configure,
-    configured_backends,
+    backend_configure,
     get_backend,
+    get_configured_backends,
     start_backends,
 )
 from caikit.core.module_backends import backend_types
@@ -49,8 +49,8 @@ def test_configure_with_module(reset_globals):
             }
         }
     ):
-        configure()
-        assert "MOCK" in configured_backends()
+        backend_configure()
+        assert "MOCK" in get_configured_backends()
         assert (
             _CONFIGURED_BACKENDS[backend_types.MOCK].backend_type == backend_types.MOCK
         )
@@ -68,7 +68,7 @@ def test_non_supported_backend_raises():
         }
     ):
         with pytest.raises(ValueError):
-            configure()
+            backend_configure()
 
 
 def test_disabling_local_backend(reset_globals):
@@ -77,8 +77,8 @@ def test_disabling_local_backend(reset_globals):
     with temp_config(
         {"module_backends": {"priority": [backend_types.MOCK], "disable_local": True}}
     ):
-        configure()
-        assert "LOCAL" not in configured_backends()
+        backend_configure()
+        assert "LOCAL" not in get_configured_backends()
 
 
 def test_duplicate_config_raises(reset_globals):
@@ -91,9 +91,9 @@ def test_duplicate_config_raises(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
         with pytest.raises(AssertionError):
-            configure()
+            backend_configure()
 
 
 def test_one_configured_backend_can_start(reset_globals):
@@ -107,7 +107,7 @@ def test_one_configured_backend_can_start(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
         start_backends()
         # This is configured to be True in helpers
         assert (
@@ -157,8 +157,8 @@ def test_multiple_module_same_backend_configures(reset_globals):
             }
         }
     ):
-        configure()
-        assert "MOCK" in configured_backends()
+        backend_configure()
+        assert "MOCK" in get_configured_backends()
         assert (
             _CONFIGURED_BACKENDS[backend_types.MOCK].backend_type == backend_types.MOCK
         )
@@ -175,7 +175,7 @@ def test_get_backend_starts_backend(reset_globals):
     with temp_config(
         {"module_backends": {"priority": [backend_types.MOCK], "disable_local": True}}
     ):
-        configure()
+        backend_configure()
         assert not _CONFIGURED_BACKENDS[backend_types.MOCK].is_started
         backend = get_backend(backend_types.MOCK)
         assert backend.is_started

@@ -16,8 +16,6 @@
 Tests for backend type logic
 """
 
-# Standard
-
 # Third Party
 import pytest
 

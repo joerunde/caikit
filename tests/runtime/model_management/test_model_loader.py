@@ -26,10 +26,9 @@ import pytest
 from caikit.config import get_config
 from caikit.core import ModuleConfig
 from caikit.core.blocks import base, block
-from caikit.core.module_backend_config import _CONFIGURED_BACKENDS, configure
+from caikit.core.module_backend_config import _CONFIGURED_BACKENDS, backend_configure
 from caikit.core.module_backends import BackendBase, backend_types
 from caikit.core.module_backends.backend_types import register_backend_type
-from caikit.runtime.model_management import model_loader
 from caikit.runtime.model_management.batcher import Batcher
 from caikit.runtime.model_management.model_loader import ModelLoader
 from caikit.runtime.types.caikit_runtime_exception import CaikitRuntimeException
@@ -61,7 +60,7 @@ def reset_distributed_config():
     _CONFIGURED_BACKENDS.clear()
     yield
     _CONFIGURED_BACKENDS.clear()
-    configure()
+    backend_configure()
     _CONFIGURED_BACKENDS.clear()
     for key, value in prev_config_backends.items():
         _CONFIGURED_BACKENDS[key] = value

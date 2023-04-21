@@ -22,7 +22,7 @@ import tempfile
 
 # Local
 from caikit.config import get_config
-from caikit.core.module_backend_config import configure
+from caikit.core.module_backend_config import backend_configure
 from caikit.core.module_backends import LocalBackend
 
 # Unit Test Infrastructure
@@ -285,7 +285,7 @@ def test_backend_supported_model_load_successfully(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_BACKEND_MODEL_NAME)
         model = caikit.core.load(dummy_model_path)
@@ -305,7 +305,7 @@ def test_local_model_load_successfully(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_LOCAL_MODEL_NAME)
         model = caikit.core.load(dummy_model_path)
@@ -328,7 +328,7 @@ def test_local_model_loaded_backend_successfully(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         DummyBar.SUPPORTED_LOAD_BACKENDS.append("LOCAL")
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_LOCAL_MODEL_NAME)
@@ -349,7 +349,7 @@ def test_backend_model_loaded_as_singleton(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_BACKEND_MODEL_NAME)
         model1 = caikit.core.load(dummy_model_path, load_singleton=True)
@@ -386,7 +386,7 @@ def test_singleton_cache_with_different_backend(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_BACKEND_MODEL_NAME)
         _ = caikit.core.load(dummy_model_path, load_singleton=True)
@@ -426,7 +426,7 @@ def test_fall_back_to_local(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
         with temp_saved_model(NonDistributedBlock()) as model_path:
             model = caikit.core.load(model_path)
 
@@ -441,7 +441,7 @@ def test_no_local_if_disabled(reset_globals):
     with temp_config(
         {"module_backends": {"priority": [backend_types.MOCK], "disable_local": True}}
     ):
-        configure()
+        backend_configure()
         with temp_saved_model(NonDistributedBlock()) as model_path:
             with pytest.raises(ValueError):
                 caikit.core.load(model_path)
@@ -460,7 +460,7 @@ def test_preferred_backend_enabled(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_LOCAL_MODEL_NAME)
         model = caikit.core.load(dummy_model_path)
@@ -480,7 +480,7 @@ def test_preferred_backend_disabled(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_LOCAL_MODEL_NAME)
         model = caikit.core.load(dummy_model_path)
@@ -524,7 +524,7 @@ def test_non_local_supported_backend(reset_globals):
             }
         }
     ):
-        configure()
+        backend_configure()
 
         dummy_model_path = os.path.join(TEST_DATA_PATH, DUMMY_BACKEND_MODEL_NAME)
         model = caikit.core.load(dummy_model_path)

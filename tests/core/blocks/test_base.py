@@ -18,7 +18,6 @@ import shutil
 import tempfile
 
 # Local
-from caikit.config import get_config
 from caikit.core.blocks import block
 from caikit.core.blocks.base import BlockSaver
 from caikit.core.toolkit.serializers import JSONSerializer

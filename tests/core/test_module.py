@@ -413,7 +413,7 @@ def test_class_attributes(reset_globals):
             }
         }
     ):
-        caikit.core.module_backend_config.configure()
+        caikit.core.module_backend_config.backend_configure()
         assert DummyBar.BACKEND_TYPE == backend_types.MOCK
 
         # Make sure an instance can fetch via get_backend()

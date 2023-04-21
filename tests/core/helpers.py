@@ -46,17 +46,17 @@ def reset_backend_types():
         key: val for key, val in backend_types.MODULE_BACKEND_TYPES.items()
     }
     base_backend_fns = {
-        key: val for key, val in backend_types.MODULE_BACKEND_CONFIG_FUNCTIONS.items()
+        key: val for key, val in backend_types.MODULE_BACKEND_CLASSES.items()
     }
     yield
     backend_types.MODULE_BACKEND_TYPES.clear()
     backend_types.MODULE_BACKEND_TYPES.update(base_backend_types)
-    backend_types.MODULE_BACKEND_CONFIG_FUNCTIONS.clear()
-    backend_types.MODULE_BACKEND_CONFIG_FUNCTIONS.update(base_backend_fns)
+    backend_types.MODULE_BACKEND_CLASSES.clear()
+    backend_types.MODULE_BACKEND_CLASSES.update(base_backend_fns)
 
 
 @pytest.fixture
-def reset_module_BACKEND_registry():
+def reset_module_backend_registry():
     """Fixture that will reset the module distribution registry if a test modifies them"""
     module_registry = {key: val for key, val in MODULE_BACKEND_REGISTRY.items()}
     yield
@@ -87,6 +87,6 @@ def reset_globals(
     reset_backend_types,
     reset_configured_backends,
     reset_module_registry,
-    reset_module_BACKEND_registry,
+    reset_module_backend_registry,
 ):
     """Fixture that will reset the backend types and module registries if a test modifies them"""
