@@ -128,6 +128,141 @@ class ModelManager:
                 ),
             )
 
+    def extract(self, zip_path, model_path, force_overwrite=False):
+        """Method to extract a downloaded archive to a specified directory.
+
+        Args:
+            zip_path: str
+                Location of .zip file to extract.
+            model_path: str
+                Model directory where the archive should be unzipped unzipped.
+            force_overwrite: bool (Defaults to false)
+                Force an overwrite to model_path, even if the folder exists
+        Returns:
+            str
+                Output path where the model archive is unzipped.
+        """
+        model_path = os.path.abspath(model_path)
+
+        # skip if force_overwrite disabled and path already exists
+        if not force_overwrite and os.path.exists(model_path):
+            log.info(
+                "INFO: Skipped extraction. Archive already extracted in directory: %s",
+                model_path,
+            )
+            return model_path
+
+        with zipfile.ZipFile(zip_path, "r") as zip_f:
+            zip_f.extractall(model_path)
+
+        # path to model
+        return model_path
+
+    def resolve_and_load(
+        self, path_or_name_or_model_reference: Union[str, ModuleBase], **kwargs
+    ):
+        """Try our best to load a model, given a path or a name. Simply returns any loaded model
+        passed in. This exists to ease the burden on workflow developers who need to accept
+        individual blocks in their API, where users may have references to custom models or may only
+        have the ability to give the name of a stock model.
+
+        Args:
+            path_or_name_or_model_reference (str, ModuleBase): Either a
+                - Path to a model on disk
+                - Name of a model that the catalog knows about
+                - Loaded module (e.g. block or workflow)
+            **kwargs: Any keyword arguments to pass along to ModelManager.load()
+                      or ModelManager.download()
+                e.g. parent_dir
+
+        Returns:
+            A loaded module
+
+        Examples:
+            >>> stock_syntax_model = manager.resolve_and_load('syntax_izumo_en_stock')
+            >>> local_categories_model = manager.resolve_and_load('path/to/categories/model')
+            >>> some_custom_model = manager.resolve_and_load(some_custom_model)
+        """
+        error.type_check(
+            "<COR50266694E>",
+            str,
+            ModuleBase,
+            path_or_name_or_model_reference=path_or_name_or_model_reference,
+        )
+
+        # If this is already a module, we're good to go
+        if isinstance(path_or_name_or_model_reference, ModuleBase):
+            log.debug("Returning model %s directly", path_or_name_or_model_reference)
+            return path_or_name_or_model_reference
+
+        # Otherwise, this could either be a path on disk or some name of a model that our catalog
+        # can resolve and fetch
+        if os.path.isdir(path_or_name_or_model_reference):
+            # Try to load from path
+            log.debug(
+                "Attempting to load model from path %s", path_or_name_or_model_reference
+            )
+            return self.load(path_or_name_or_model_reference, **kwargs)
+
+        error(
+            "<COR50207495E>",
+            ValueError(
+                "could not find model with name `{}`".format(
+                    path_or_name_or_model_reference
+                )
+            ),
+        )
+
+    def get_singleton_model_cache_info(self):
+        """Returns information about the singleton cache in {hash: module type} format
+
+        Returns:
+            Dict[str, type]
+                A dictionary of model hashes to model types
+        """
+        return {k: type(v) for k, v in self.singleton_module_cache.items()}
+
+    def clear_singleton_cache(self):
+        """Clears the cache of singleton models. Useful to release references of models, as long as
+        you know that they are no longer held elsewhere and you won't be loading them again.
+
+        Returns:
+            None
+        """
+        with self._singleton_lock:
+            self.singleton_module_cache.clear()
+
+    @contextmanager
+    def singleton_lock(self, load_singleton: bool):
+        """Helper contextmanager that will only lock the singleton cache if this
+        load is a singleton load
+        """
+        if load_singleton:
+            with self._singleton_lock:
+                yield
+        else:
+            yield
+
+    @classmethod
+    def get_module_class_from_config(cls, module_config):
+        """Utility function to fetch module class information
+        from ModuleConfig
+
+        Args:
+            module_config: caikit.core.module.ModuleConfig
+                Configuration for caikit.core module
+        Returns:
+            str: name of the module_class
+        """
+        module_class = ""
+        for module_type in _MODULE_TYPES:
+            module_class_name = "{}_class".format(module_type.lower())
+            if module_class_name in module_config:
+                module_class = module_config.get(module_class_name)
+                break
+
+        return module_class
+
     def _load_from_dir(self, module_path, load_singleton, *args, **kwargs):
         """Load a model from a directory.
 
@@ -357,121 +492,6 @@ class ModelManager:
                     )
         return model
 
-    def extract(self, zip_path, model_path, force_overwrite=False):
-        """Method to extract a downloaded archive to a specified directory.
-
-        Args:
-            zip_path: str
-                Location of .zip file to extract.
-            model_path: str
-                Model directory where the archive should be unzipped unzipped.
-            force_overwrite: bool (Defaults to false)
-                Force an overwrite to model_path, even if the folder exists
-        Returns:
-            str
-                Output path where the model archive is unzipped.
-        """
-        model_path = os.path.abspath(model_path)
-
-        # skip if force_overwrite disabled and path already exists
-        if not force_overwrite and os.path.exists(model_path):
-            log.info(
-                "INFO: Skipped extraction. Archive already extracted in directory: %s",
-                model_path,
-            )
-            return model_path
-
-        with zipfile.ZipFile(zip_path, "r") as zip_f:
-            zip_f.extractall(model_path)
-
-        # path to model
-        return model_path
-
-    def resolve_and_load(
-        self, path_or_name_or_model_reference: Union[str, ModuleBase], **kwargs
-    ):
-        """Try our best to load a model, given a path or a name. Simply returns any loaded model
-        passed in. This exists to ease the burden on workflow developers who need to accept
-        individual blocks in their API, where users may have references to custom models or may only
-        have the ability to give the name of a stock model.
-
-        Args:
-            path_or_name_or_model_reference (str, ModuleBase): Either a
-                - Path to a model on disk
-                - Name of a model that the catalog knows about
-                - Loaded module (e.g. block or workflow)
-            **kwargs: Any keyword arguments to pass along to ModelManager.load()
-                      or ModelManager.download()
-                e.g. parent_dir
-
-        Returns:
-            A loaded module
-
-        Examples:
-            >>> stock_syntax_model = manager.resolve_and_load('syntax_izumo_en_stock')
-            >>> local_categories_model = manager.resolve_and_load('path/to/categories/model')
-            >>> some_custom_model = manager.resolve_and_load(some_custom_model)
-        """
-        error.type_check(
-            "<COR50266694E>",
-            str,
-            ModuleBase,
-            path_or_name_or_model_reference=path_or_name_or_model_reference,
-        )
-
-        # If this is already a module, we're good to go
-        if isinstance(path_or_name_or_model_reference, ModuleBase):
-            log.debug("Returning model %s directly", path_or_name_or_model_reference)
-            return path_or_name_or_model_reference
-
-        # Otherwise, this could either be a path on disk or some name of a model that our catalog
-        # can resolve and fetch
-        if os.path.isdir(path_or_name_or_model_reference):
-            # Try to load from path
-            log.debug(
-                "Attempting to load model from path %s", path_or_name_or_model_reference
-            )
-            return self.load(path_or_name_or_model_reference, **kwargs)
-
-        error(
-            "<COR50207495E>",
-            ValueError(
-                "could not find model with name `{}`".format(
-                    path_or_name_or_model_reference
-                )
-            ),
-        )
-
-    def get_singleton_model_cache_info(self):
-        """Returns information about the singleton cache in {hash: module type} format
-
-        Returns:
-            Dict[str, type]
-                A dictionary of model hashes to model types
-        """
-        return {k: type(v) for k, v in self.singleton_module_cache.items()}
-
-    def clear_singleton_cache(self):
-        """Clears the cache of singleton models. Useful to release references of models, as long as
-        you know that they are no longer held elsewhere and you won't be loading them again.
-
-        Returns:
-            None
-        """
-        with self._singleton_lock:
-            self.singleton_module_cache.clear()
-
-    @contextmanager
-    def singleton_lock(self, load_singleton: bool):
-        """Helper contextmanager that will only lock the singleton cache if this
-        load is a singleton load
-        """
-        if load_singleton:
-            with self._singleton_lock:
-                yield
-        else:
-            yield
-
     def _get_supported_load_backends(self, backend_impl: ModuleBase):
         """Function to get a list of supported load backends
         that the module supports
@@ -491,23 +511,3 @@ class ModelManager:
         # If module_backend is None, then we will assume that this model is not loadable in
         # any other backend
         return getattr(backend_impl, SUPPORTED_LOAD_BACKENDS_VAR_NAME, [])
-
-    @classmethod
-    def get_module_class_from_config(cls, module_config):
-        """Utility function to fetch module class information
-        from ModuleConfig
-
-        Args:
-            module_config: caikit.core.module.ModuleConfig
-                Configuration for caikit.core module
-        Returns:
-            str: name of the module_class
-        """
-        module_class = ""
-        for module_type in _MODULE_TYPES:
-            module_class_name = "{}_class".format(module_type.lower())
-            if module_class_name in module_config:
-                module_class = module_config.get(module_class_name)
-                break
-
-        return module_class
