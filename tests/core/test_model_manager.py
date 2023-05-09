@@ -24,6 +24,7 @@ import uuid
 
 # Local
 from caikit.core import ModuleBase
+from caikit.core.data_model import DataStream
 from caikit.core.module_backend_config import configure
 from caikit.core.module_backends import LocalBackend
 
@@ -505,7 +506,7 @@ def test_non_local_supported_backend(reset_globals):
         assert isinstance(model, DummyBaz)
 
 
-def test_load_must_return_model():
+def test_load_raises_if_module_does_not_return_a_module_instance_on_load():
     """Make sure that the return type of load is checked to be an instance of
     ModuleBase, and will raise TypeError if it is not.
     """
@@ -514,6 +515,8 @@ def test_load_must_return_model():
     class _FunkyModel(SampleBlock):
         @classmethod
         def load(cls, model_path):
+            # This load function returns a tuple instead of an instance of the module
+            # `caikit.core.load` should raise after calling _FunkyModel.load
             return (super().load(model_path), "something else")
 
     model = _FunkyModel()
@@ -611,3 +614,12 @@ def test_load_does_not_read_config_yml_if_loader_does_not_require_it(
         configure()
         model = caikit.core.load(tmpdir)
         assert isinstance(model, SampleBlock)
+
+
+def test_caikit_train():
+    """Basic train support: caikit.core.train can invoke some module_class.train()"""
+    trained_model = SampleBlock.train(training_data=DataStream.from_iterable([]), batch_size=10)
+    other_trained_model = caikit.core.train(SampleBlock, training_data=DataStream.from_iterable([]), batch_size=10)
+
+    assert isinstance(other_trained_model, SampleBlock)
+    assert trained_model.batch_size == other_trained_model.batch_size
