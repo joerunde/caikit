@@ -627,3 +627,13 @@ def test_caikit_train():
 
     assert isinstance(other_trained_model, SampleBlock)
     assert trained_model.batch_size == other_trained_model.batch_size
+
+
+def test_caikit_train_raises_if_train_raises():
+    """The exception from training should be re-raised"""
+    with pytest.raises(ValueError, match="Batch size of .* is not allowed!"):
+        caikit.core.train(
+            SampleBlock,
+            training_data=DataStream.from_iterable([]),
+            batch_size=SampleBlock.POISON_PILL_BATCH_SIZE,
+        )
