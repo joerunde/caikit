@@ -618,8 +618,12 @@ def test_load_does_not_read_config_yml_if_loader_does_not_require_it(
 
 def test_caikit_train():
     """Basic train support: caikit.core.train can invoke some module_class.train()"""
-    trained_model = SampleBlock.train(training_data=DataStream.from_iterable([]), batch_size=10)
-    other_trained_model = caikit.core.train(SampleBlock, training_data=DataStream.from_iterable([]), batch_size=10)
+    trained_model = SampleBlock.train(
+        training_data=DataStream.from_iterable([]), batch_size=10
+    )
+    other_trained_model = caikit.core.train(
+        SampleBlock, training_data=DataStream.from_iterable([]), batch_size=10
+    )
 
     assert isinstance(other_trained_model, SampleBlock)
     assert trained_model.batch_size == other_trained_model.batch_size

@@ -85,6 +85,8 @@ class ModuleBase(metaclass=_ModuleBaseMeta):
         self._metadata = {}
         # Keep an indicator of the backend used to load this model
         self._load_backend = None
+        # Keep an indicator of the backend used to train this model
+        self._train_backend = None
 
     #############
     ## Utility ##
@@ -110,6 +112,12 @@ class ModuleBase(metaclass=_ModuleBaseMeta):
         """
         self._load_backend = load_backend
 
+    def set_train_backend(self, train_backend):
+        """Method used by the model manager to indicate the train backend that
+        was used to train this module
+        """
+        self._train_backend = train_backend
+
     @property
     def load_backend(self):
         """Get the backend instance used to load this module. This can be used
@@ -117,6 +125,14 @@ class ModuleBase(metaclass=_ModuleBaseMeta):
         inference time.
         """
         return self._load_backend
+
+    @property
+    def train_backend(self):
+        """Get the backend instance used to train this module. This can be used
+        in module implementations that require use of a specific backend at
+        train time.
+        """
+        return self._train_backend
 
     ###################
     ## Instantiation ##

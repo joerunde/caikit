@@ -20,7 +20,7 @@
 from contextlib import contextmanager
 from io import BytesIO
 from threading import Lock
-from typing import Union
+from typing import Type, Union
 import errno
 import os
 import tempfile
@@ -39,8 +39,11 @@ from .module import (
     ModuleConfig,
 )
 from .module_backends import backend_types
-from .module_backends.base import SharedLoadBackendBase
-from .module_type import SUPPORTED_LOAD_BACKENDS_VAR_NAME
+from .module_backends.base import SharedLoadBackendBase, SharedTrainBackendBase
+from .module_type import (
+    SUPPORTED_LOAD_BACKENDS_VAR_NAME,
+    SUPPORTED_TRAIN_BACKENDS_VAR_NAME,
+)
 from .toolkit.errors import error_handler
 from caikit.config import get_config
 
@@ -127,6 +130,66 @@ class ModelManager:
                     )
                 ),
             )
+
+    def train(self, module_class: Type[ModuleBase], *args, **kwargs):
+        """Load a model and return an instantiated object on which we can run inference.
+
+        Args:
+            module_class (Type[ModuleBase]): The module class to train
+            *args, **kwargs: The args to pass through to training
+
+        Returns:
+            The in-memory instance of the trained module
+        """
+        # Get the set of configured trainers
+        configured_train_backends = module_backend_config.configured_train_backends()
+        if not configured_train_backends:
+            log.info(
+                "<COR55800160I>",
+                "No backends configured! Configuring backends with current configuration",
+            )
+            module_backend_config.configure()
+            configured_train_backends = (
+                module_backend_config.configured_train_backends()
+            )
+
+        trained_model = None
+        log.debug("Available load backends: %s", configured_train_backends)
+        for train_backend in configured_train_backends:
+            # NOTE: only accounting for shared trainers and try to train directly
+            if isinstance(train_backend, SharedTrainBackendBase):
+                log.debug("Trying shared backend trainer")
+                model = train_backend.train(module_class, *args, **kwargs)
+                if model is not None:
+                    log.debug2(
+                        "Successfully trained class %s with trainer %s",
+                        module_class,
+                        train_backend.name,
+                    )
+                    error.type_check(
+                        "<COR76726077E>",
+                        ModuleBase,
+                        model=model,
+                    )
+
+                    trained_model = model
+                    model.set_train_backend(train_backend)
+                    break
+                log.debug3(
+                    "Could not train class %s with trainer %s",
+                    module_class,
+                    train_backend.name,
+                )
+
+        # If no model successfully trained, it's an error
+        if trained_model is None:
+            error(
+                "<COR32097244E>",
+                ValueError(f"Unable to train model from class {module_class}"),
+            )
+
+        # Return successfully!
+        return trained_model
 
     def extract(self, zip_path, model_path, force_overwrite=False):
         """Method to extract a downloaded archive to a specified directory.
@@ -262,6 +325,8 @@ class ModelManager:
                 break
 
         return module_class
+
+    #### Load implementation details
 
     def _load_from_dir(self, module_path, load_singleton, *args, **kwargs):
         """Load a model from a directory.
@@ -511,3 +576,24 @@ class ModelManager:
         # If module_backend is None, then we will assume that this model is not loadable in
         # any other backend
         return getattr(backend_impl, SUPPORTED_LOAD_BACKENDS_VAR_NAME, [])
+
+    #### Train implementation details
+    def _get_supported_train_backends(self, backend_impl: ModuleBase):
+        """Function to get a list of supported train backends
+        that the module supports
+
+        Args:
+            backend_impl: caikit.core.ModuleBase
+                Module implementing the backend
+        Returns:
+            list(backend_types)
+                list of backends that are supported for model train
+        """
+
+        # Get list of backends that are supported for train
+        # NOTE: since code in a module can change anytime, its support
+        # for various backend might also change, in which case,
+        # it would be better to keep the backend information in the model itself
+        # If module_backend is None, then we will assume that this model is not
+        # trainable in any other backend
+        return getattr(backend_impl, SUPPORTED_TRAIN_BACKENDS_VAR_NAME, [])
