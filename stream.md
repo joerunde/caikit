@@ -362,36 +362,37 @@ Cons:
 ### Option 3: Quickly implement streaming flavors on tasks
 
 ```python
-
-@task(required_param=("text"))
+@caikit.task()
 class TokenClassification:
   # param_name: "text" # this is a value... would need to be in decorator ^^
-  unary_input_types={"text": str, "stuff": int}
-  streaming_input_type: str
+  unary_params: {"text": str}
+  streaming_params: {"text": Iterable[str]}
   unary_output_type: TokenClassifications
-  streaming_output_type: TokenClassification
+  streaming_output_type: Iterable[TokenClassification]
 
 @caikit.module(id="foobar", task=TokenClassification)
 class MyTokenClassifierModule(caikit.ModuleBase):
   
-    @TokenClassification.taskmethod()
-    @taskmethod(TokenClassification, streaminess_flavor=UNARY_UNARY)
+    @TokenClassification.taskmethod(stream_flavor=UNARY_UNARY)
     def run(self, text: str) -> TokenClassifications:
       ...
     
+    @TokenClassification.taskmethod(stream_flavor=STREAM_STREAM)
     def run_bidi_stream(self):
       ...
     
+    @TokenClassification.taskmethod(stream_flavor=STREAM_UNARY)
     def run_stream_in(self):
       ...
     
+    @TokenClassification.taskmethod(stream_flavor=UNARY_STREAM)
     def run_stream_out(self):
       ...
 
-    def run_batch(self, texts: List[str]) -> List[TokenClassifications]:
+    # def run_batch(self, texts: List[str]) -> List[TokenClassifications]:
       
-    @taskmethod(TokenClassification, streaminess_flavor=UNARY_UNARY, batched=True)
-    def run_batch_stream(self, texts: List[str]) -> List[DataStream[TokenClassification]]:
+    # @taskmethod(TokenClassification, streaminess_flavor=UNARY_UNARY, batched=True)
+    # def run_batch_stream(self, texts: List[str]) -> List[DataStream[TokenClassification]]:
         # default impl calls run
 ```
 
@@ -482,13 +483,31 @@ class MyTokenClassifier(caikit.core.ModuleBase):
 
 ### Stories?
 
-If going with option 2:
+If going with option 3:
 
-- Add streaming on the input side of the tasks as well
-(Assuming only a single input?)
-- Decide on a multi-task API for modules
-- Update _all_ the logic for api generation to support multiple tasks
--
+- Swap over to `__annotations__` on the task classes
+  - Should be backwards-compatible to not break existing "simple" tasks
+  - Add streaming input support with similar type checking as streaming outputs
+- Add `taskmethod` decorator method onto task base
+- Update service introspection code to look for the additional `@taskmethod`s
+  - `run` should still be used for "simple" tasks if no `@taskmethod`s present
+  - module still maps to a single task, but task will have multiple RPCs
+- Refactor the "is_streaming_output_task" logic to be RPC specific, not task-specific
+- Update server wrapper to allow global-predict wrapping of input-streaming flavored RPCs
+- Update the global predict code to handle input streaming rpcs as well
+  - Will require extra knowledge re: "which RPC is being handled", cannot just ask the task since tasks now have multiple RPCs
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 Why multi-task models?
